@@ -41,6 +41,7 @@ export async function GET(
     employees: supplier.employees,
     squareFeet: supplier.squareFeet,
     description: supplier.description,
+    archived: supplier.archived,
     categories: supplier.categories.map((sc) => sc.category.name).sort(),
     images: supplier.images.map((img) => ({
       id: img.id,
@@ -74,6 +75,7 @@ const updateSchema = z.object({
   squareFeet: z.string().max(50).nullable().optional(),
   description: z.string().nullable().optional(),
   categories: z.array(z.string().min(1).max(100)).optional(),
+  archived: z.boolean().optional(),
 });
 
 export async function PUT(

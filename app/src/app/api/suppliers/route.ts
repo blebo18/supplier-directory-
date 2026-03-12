@@ -10,9 +10,12 @@ export async function GET(request: NextRequest) {
   const pageSize = Math.min(parseInt(params.get("pageSize") || "24", 10), 100);
 
   const includeArchived = params.get("includeArchived") === "true";
+  const archivedOnly = params.get("archivedOnly") === "true";
   const where: Prisma.SupplierWhereInput = {};
 
-  if (!includeArchived) {
+  if (archivedOnly) {
+    where.archived = true;
+  } else if (!includeArchived) {
     where.archived = false;
   }
 

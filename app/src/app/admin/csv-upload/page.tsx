@@ -75,6 +75,7 @@ export default function CSVUploadPage() {
           <h1 className="text-2xl font-bold text-gray-900">CSV Upload</h1>
           <div className="flex gap-4 text-sm">
             <Link href="/admin" className="text-blue-600 hover:underline">Users</Link>
+            <Link href="/admin/archived" className="text-blue-600 hover:underline">Archived</Link>
             <Link href="/admin/analytics" className="text-blue-600 hover:underline">Analytics</Link>
             <Link href="/" className="text-blue-600 hover:underline">Back to directory</Link>
           </div>

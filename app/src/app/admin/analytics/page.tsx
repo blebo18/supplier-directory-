@@ -62,6 +62,7 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
           <div className="flex gap-4 text-sm">
             <Link href="/admin" className="text-blue-600 hover:underline">Users</Link>
+            <Link href="/admin/archived" className="text-blue-600 hover:underline">Archived</Link>
             <Link href="/admin/csv-upload" className="text-blue-600 hover:underline">CSV Upload</Link>
             <Link href="/" className="text-blue-600 hover:underline">Back to directory</Link>
           </div>

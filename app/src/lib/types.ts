@@ -11,6 +11,7 @@ export interface Supplier {
   employees: number | null;
   squareFeet: string | null;
   description: string | null;
+  archived?: boolean;
   categories: string[];
   images?: SupplierImage[];
   videos?: SupplierVideo[];

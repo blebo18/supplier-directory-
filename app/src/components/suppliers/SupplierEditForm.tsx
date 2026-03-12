@@ -11,8 +11,9 @@ interface SupplierEditFormProps {
 }
 
 export default function SupplierEditForm({ supplier, onSave, onCancel }: SupplierEditFormProps) {
-  const { token } = useAuth();
+  const { token, isAdmin } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
   const [categories, setCategories] = useState<string[]>(supplier.categories || []);
   const [categoryInput, setCategoryInput] = useState("");
@@ -321,6 +322,51 @@ export default function SupplierEditForm({ supplier, onSave, onCancel }: Supplie
           Cancel
         </button>
       </div>
+
+      {isAdmin && (
+        <div className="pt-4 mt-4 border-t border-gray-200">
+          <button
+            type="button"
+            disabled={archiving}
+            onClick={async () => {
+              const isArchived = supplier.archived;
+              const action = isArchived ? "unarchive" : "archive";
+              if (!confirm(`Are you sure you want to ${action} "${supplier.company}"?`)) return;
+
+              setArchiving(true);
+              setError("");
+              try {
+                const res = await fetch(`/api/suppliers/${supplier.id}`, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ archived: !isArchived }),
+                });
+                if (!res.ok) {
+                  const data = await res.json();
+                  setError(data.error || `Failed to ${action}`);
+                  return;
+                }
+                const data = await res.json();
+                onSave({ ...supplier, ...data, categories: data.categories || supplier.categories });
+              } finally {
+                setArchiving(false);
+              }
+            }}
+            className={`w-full px-4 py-2.5 text-sm font-medium rounded-lg transition disabled:opacity-50 ${
+              supplier.archived
+                ? "text-green-700 bg-green-50 border border-green-300 hover:bg-green-100"
+                : "text-red-700 bg-red-50 border border-red-300 hover:bg-red-100"
+            }`}
+          >
+            {archiving
+              ? (supplier.archived ? "Unarchiving..." : "Archiving...")
+              : (supplier.archived ? "Unarchive Supplier" : "Archive Supplier")}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

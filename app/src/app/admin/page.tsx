@@ -65,6 +65,7 @@ export default function AdminPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <div className="flex gap-4 text-sm">
+            <Link href="/admin/archived" className="text-blue-600 hover:underline">Archived</Link>
             <Link href="/admin/analytics" className="text-blue-600 hover:underline">Analytics</Link>
             <Link href="/admin/csv-upload" className="text-blue-600 hover:underline">CSV Upload</Link>
             <Link href="/" className="text-blue-600 hover:underline">Back to directory</Link>
