@@ -1,0 +1,12 @@
+# Data files
+suppliers.csv
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+
+# Node (top-level)
+node_modules/
+package-lock.json

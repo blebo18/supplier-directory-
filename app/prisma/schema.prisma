@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(cuid())
+  email          String           @unique
+  passwordHash   String
+  name           String
+  role           Role             @default(VIEWER)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  contactMessages ContactMessage[]
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model Supplier {
+  id              Int                @id
+  company         String
+  website         String?
+  phone           String?
+  fax             String?
+  street          String?
+  city            String?
+  state           String?
+  zip             String?
+  employees       Int?
+  squareFeet      String?
+  description     String?            @db.Text
+  exhibitor       Boolean            @default(false)
+  advertiser      Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  categories      SupplierCategory[]
+  images          SupplierImage[]
+  videos          SupplierVideo[]
+  documents       SupplierDocument[]
+  archived        Boolean            @default(false)
+  contactMessages ContactMessage[]
+  views           SupplierView[]
+  clicks          WebLinkClick[]
+
+  @@index([company])
+  @@index([state])
+}
+
+model Category {
+  id        Int                @id @default(autoincrement())
+  name      String             @unique
+  suppliers SupplierCategory[]
+
+  @@index([name])
+}
+
+model SupplierCategory {
+  supplierId Int
+  categoryId Int
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([supplierId, categoryId])
+}
+
+model SupplierImage {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  url        String
+  altText    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+}
+
+model SupplierVideo {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  url        String
+  title      String?
+  createdAt  DateTime @default(now())
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+}
+
+model SupplierDocument {
+  id          Int      @id @default(autoincrement())
+  supplierId  Int
+  filename    String
+  storagePath String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+}
+
+model SupplierView {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  viewedAt   DateTime @default(now())
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([viewedAt])
+}
+
+model WebLinkClick {
+  id         Int      @id @default(autoincrement())
+  supplierId Int
+  url        String
+  clickedAt  DateTime @default(now())
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([clickedAt])
+}
+
+model ContactMessage {
+  id          Int      @id @default(autoincrement())
+  supplierId  Int
+  senderName  String
+  senderEmail String
+  senderPhone String?
+  message     String   @db.Text
+  userId      String?
+  createdAt   DateTime @default(now())
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([supplierId])
+}
