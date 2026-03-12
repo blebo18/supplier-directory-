@@ -147,16 +147,17 @@ fi
 if [ -d "${DEPLOY_DIR}/.git" ]; then
     info "Updating existing repo..."
     cd "${DEPLOY_DIR}"
-    sudo -u "${APP_USER}" git pull origin main
+    git pull origin main
+    chown -R "${APP_USER}:${APP_USER}" "${DEPLOY_DIR}"
 else
     info "Cloning repository..."
-    # If SSH key isn't set up, fall back to HTTPS
-    if sudo -u "${APP_USER}" git ls-remote "${REPO_URL}" &>/dev/null; then
-        sudo -u "${APP_USER}" git clone "${REPO_URL}" "${DEPLOY_DIR}.tmp"
+    # Clone as root (app user may not have write access to /opt), then chown
+    HTTPS_URL="https://github.com/blebo18/supplier-directory.git"
+    if git ls-remote "${REPO_URL}" &>/dev/null 2>&1; then
+        git clone "${REPO_URL}" "${DEPLOY_DIR}.tmp"
     else
-        HTTPS_URL="https://github.com/blebo18/supplier-directory.git"
-        warn "SSH key not available for ${APP_USER}, trying HTTPS..."
-        sudo -u "${APP_USER}" git clone "${HTTPS_URL}" "${DEPLOY_DIR}.tmp"
+        warn "SSH not available, using HTTPS..."
+        git clone "${HTTPS_URL}" "${DEPLOY_DIR}.tmp"
     fi
     # Move contents into deploy dir (user home already exists)
     cp -a "${DEPLOY_DIR}.tmp/." "${DEPLOY_DIR}/"
