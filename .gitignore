@@ -9,4 +9,3 @@ suppliers.csv
 
 # Node (top-level)
 node_modules/
-package-lock.json
