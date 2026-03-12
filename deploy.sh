@@ -130,7 +130,11 @@ su - postgres -c "psql -tc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}
 
 su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};\""
 
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}?schema=public"
+# URL-encode the password (handles special chars like @, #, /, etc.)
+DB_PASS_ENCODED=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.stdin.read(), safe=''))" <<< "$DB_PASS")
+# Remove trailing newline that <<< adds
+DB_PASS_ENCODED="${DB_PASS_ENCODED%"%0A"}"
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENCODED}@localhost:5432/${DB_NAME}?schema=public"
 info "Database '${DB_NAME}' ready"
 
 # ============================================================================
