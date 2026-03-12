@@ -324,7 +324,32 @@ export default function SupplierEditForm({ supplier, onSave, onCancel }: Supplie
       </div>
 
       {isAdmin && (
-        <div className="pt-4 mt-4 border-t border-gray-200">
+        <div className="pt-4 mt-4 border-t border-gray-200 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={supplier.featured || false}
+              onChange={async () => {
+                const newFeatured = !supplier.featured;
+                try {
+                  const res = await fetch(`/api/suppliers/${supplier.id}`, {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ featured: newFeatured }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    onSave({ ...supplier, ...data, categories: data.categories || supplier.categories });
+                  }
+                } catch {}
+              }}
+              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Featured on home page</span>
+          </label>
           <button
             type="button"
             disabled={archiving}

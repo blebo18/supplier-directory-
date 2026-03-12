@@ -1,60 +1,69 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Supplier, SearchResult } from "@/lib/types";
-import SearchBar from "@/components/suppliers/SearchBar";
-import CategorySidebar from "@/components/suppliers/CategorySidebar";
-import SupplierGrid from "@/components/suppliers/SupplierGrid";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Supplier } from "@/lib/types";
+import FeaturedSupplierCard from "@/components/suppliers/FeaturedSupplierCard";
+import SupplierCard from "@/components/suppliers/SupplierCard";
 import SupplierModal from "@/components/suppliers/SupplierModal";
-import Pagination from "@/components/suppliers/Pagination";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
+import { useAds } from "@/components/ads/useAds";
 import Link from "next/link";
 
 export default function Home() {
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [category, setCategory] = useState("");
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<SearchResult | null>(null);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [featuredSuppliers, setFeaturedSuppliers] = useState<Supplier[]>([]);
+  const [popularSuppliers, setPopularSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [totalSuppliers, setTotalSuppliers] = useState(0);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [heroImage, setHeroImage] = useState("/sd-hero.jpg");
+  const [siteLogo, setSiteLogo] = useState<string | null>(null);
   const { user, logout, isAdmin } = useAuth();
+  const { ads: leaderboardAds, trackClick: trackLeaderboardClick } = useAds("LEADERBOARD", 5);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedQuery(query);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [query]);
+    const fetchAll = async () => {
+      const [featuredRes, popularRes, catRes, settingsRes] = await Promise.all([
+        fetch("/api/suppliers?featured=true&pageSize=12"),
+        fetch("/api/suppliers/popular?limit=6"),
+        fetch("/api/suppliers?pageSize=1"),
+        fetch("/api/settings"),
+      ]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (debouncedQuery) params.set("q", debouncedQuery);
-    if (category) params.set("category", category);
-    params.set("page", page.toString());
+      const featuredData = await featuredRes.json();
+      setFeaturedSuppliers(featuredData.items || []);
 
-    const res = await fetch(`/api/suppliers?${params}`);
-    const json = await res.json();
-    setData(json);
-    if (json.categories) {
-      setCategories(json.categories);
+      const popularData = await popularRes.json();
+      setPopularSuppliers(popularData.items || []);
+
+      const catData = await catRes.json();
+      setCategories(catData.categories || []);
+      setTotalSuppliers(catData.total || 0);
+
+      const settingsData = await settingsRes.json();
+      if (settingsData.heroImage) setHeroImage(settingsData.heroImage);
+      if (settingsData.siteLogo) setSiteLogo(settingsData.siteLogo);
+    };
+
+    fetchAll();
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push("/search");
     }
-    setLoading(false);
-  }, [debouncedQuery, category, page]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  };
 
   const handleCategoryClick = (cat: string) => {
-    setCategory(cat);
-    setPage(1);
-    setSelectedSupplier(null);
+    router.push(`/search?category=${encodeURIComponent(cat)}`);
   };
 
   return (
@@ -62,32 +71,16 @@ export default function Home() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <h1
-              className="text-2xl font-bold text-gray-900 shrink-0 cursor-pointer hover:text-blue-600 transition"
-              onClick={() => {
-                setQuery("");
-                setCategory("");
-                setPage(1);
-              }}
-            >
-              Supplier Directory
-            </h1>
-            <SearchBar value={query} onChange={setQuery} />
-            {category && (
-              <button
-                onClick={() => { setCategory(""); setPage(1); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
-              >
-                {category}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-            <div className="sm:ml-auto shrink-0">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
+              {siteLogo && (
+                <img src={siteLogo} alt="Logo" className="h-8 w-auto" />
+              )}
+              <span className="text-2xl font-bold text-gray-900">Supplier Directory</span>
+            </Link>
+            <div className="flex items-center gap-3">
               {user ? (
-                <div className="flex items-center gap-3">
+                <>
                   <span className="text-sm text-gray-600">
                     {user.name}
                     {user.role !== "VIEWER" && (
@@ -95,20 +88,14 @@ export default function Home() {
                     )}
                   </span>
                   {isAdmin && (
-                    <Link
-                      href="/admin"
-                      className="text-sm text-blue-600 hover:text-blue-800 transition"
-                    >
+                    <Link href="/admin" className="text-sm text-blue-600 hover:text-blue-800 transition">
                       Admin
                     </Link>
                   )}
-                  <button
-                    onClick={logout}
-                    className="text-sm text-gray-500 hover:text-gray-700 transition"
-                  >
+                  <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-700 transition">
                     Sign out
                   </button>
-                </div>
+                </>
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
@@ -122,48 +109,138 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex gap-6">
-        <CategorySidebar
-          categories={categories}
-          selected={category}
-          onSelect={(cat) => { setCategory(cat); setPage(1); }}
-        />
-
-        <main className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-600">
-              {loading ? "Searching..." : (
-                <><span className="font-medium text-gray-900">{data?.total.toLocaleString()}</span> suppliers found</>
-              )}
+      {/* Hero Section */}
+      <section
+        className="border-b border-gray-200 bg-cover bg-center relative"
+        style={{ backgroundImage: `url(${heroImage})` }}
+      >
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-20 flex justify-center">
+          <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl px-10 py-10 text-center">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Find the Right Supplier
+            </h2>
+            <p className="text-lg text-gray-200 mb-8 max-w-2xl mx-auto">
+              Browse our comprehensive directory of manufacturing suppliers. Search by name, category, or location.
             </p>
-            <div className="lg:hidden">
-              <select
-                value={category}
-                onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 text-gray-900"
+            <form onSubmit={handleSearch} className="max-w-xl mx-auto flex gap-3">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search suppliers..."
+                className="flex-1 px-4 py-3 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-gray-900 placeholder-gray-400"
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
               >
-                <option value="">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+                Search
+              </button>
+            </form>
           </div>
+        </div>
+      </section>
 
-          <SupplierGrid
-            suppliers={data?.items || []}
-            loading={loading}
-            onSelect={setSelectedSupplier}
-          />
+      {leaderboardAds.length > 0 && (
+        <section className="py-12">
+          <div className="flex flex-wrap justify-center gap-8">
+            {leaderboardAds.map((ad) => (
+              <button
+                key={ad.id}
+                onClick={() => {
+                  trackLeaderboardClick(ad.id);
+                  window.open(ad.destinationUrl, "_blank", "noopener,noreferrer");
+                }}
+                className="w-[250px] h-[250px] rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-lg hover:border-gray-300 transition flex items-center justify-center p-4"
+              >
+                <img
+                  src={ad.imageUrl}
+                  alt={ad.name}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-          {data && (
-            <Pagination
-              page={page}
-              totalPages={data.totalPages}
-              onPageChange={setPage}
-            />
-          )}
-        </main>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Featured Companies */}
+        {featuredSuppliers.length > 0 && (
+          <section className="py-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Featured Companies</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredSuppliers.map((supplier) => (
+                <FeaturedSupplierCard
+                  key={supplier.id}
+                  supplier={supplier}
+                  onClick={() => setSelectedSupplier(supplier)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Browse by Category */}
+        {categories.length > 0 && (
+          <section className="py-12 border-t border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Browse by Category</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {(showAllCategories ? categories : categories.slice(0, 12)).map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => handleCategoryClick(cat)}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-blue-300 hover:text-blue-600 hover:shadow-sm transition text-left"
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            {categories.length > 12 && !showAllCategories && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setShowAllCategories(true)}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 transition"
+                >
+                  Show All ({categories.length} categories)
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Popular Suppliers */}
+        {popularSuppliers.length > 0 && (
+          <section className="py-12 border-t border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Most Viewed Suppliers</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {popularSuppliers.map((supplier) => (
+                <SupplierCard
+                  key={supplier.id}
+                  supplier={supplier}
+                  onClick={() => setSelectedSupplier(supplier)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Directory CTA */}
+        <section className="py-12 border-t border-gray-200">
+          <div className="bg-blue-600 rounded-xl p-8 text-center text-white">
+            <h2 className="text-2xl font-bold mb-2">Explore the Full Directory</h2>
+            <p className="text-blue-100 mb-6">
+              Browse all {totalSuppliers.toLocaleString()} suppliers with advanced search and filtering.
+            </p>
+            <Link
+              href="/search"
+              className="inline-block px-6 py-3 bg-white text-blue-600 font-medium rounded-lg hover:bg-blue-50 transition"
+            >
+              View All Suppliers
+            </Link>
+          </div>
+        </section>
       </div>
 
       {selectedSupplier && (

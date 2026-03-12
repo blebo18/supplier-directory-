@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
     where.archived = false;
   }
 
+  const featured = params.get("featured");
+  if (featured === "true") {
+    where.featured = true;
+  }
+
   if (query) {
     where.company = { contains: query, mode: "insensitive" };
   }

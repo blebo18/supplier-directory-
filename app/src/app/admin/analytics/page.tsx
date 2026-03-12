@@ -17,6 +17,23 @@ interface ClickEntry {
   clicks: number;
 }
 
+interface AdAnalyticsEntry {
+  id: number;
+  name: string;
+  placement: string;
+  active: boolean;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+}
+
+interface AdAnalyticsData {
+  ads: AdAnalyticsEntry[];
+  totalImpressions: number;
+  totalClicks: number;
+  totalCtr: number;
+}
+
 interface AnalyticsData {
   topViewed: ViewEntry[];
   topClicked: ClickEntry[];
@@ -27,19 +44,24 @@ interface AnalyticsData {
 export default function AnalyticsPage() {
   const { user, token, isAdmin, loading: authLoading } = useAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [adData, setAdData] = useState<AdAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token || !isAdmin) return;
 
-    fetch("/api/admin/analytics", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
-        setLoading(false);
-      });
+    Promise.all([
+      fetch("/api/admin/analytics", {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.json()),
+      fetch("/api/admin/ads/analytics", {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.json()),
+    ]).then(([analyticsJson, adJson]) => {
+      setData(analyticsJson);
+      setAdData(adJson);
+      setLoading(false);
+    });
   }, [token, isAdmin]);
 
   if (authLoading) return null;
@@ -62,8 +84,11 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
           <div className="flex gap-4 text-sm">
             <Link href="/admin" className="text-blue-600 hover:underline">Users</Link>
+            <Link href="/admin/ads" className="text-blue-600 hover:underline">Ads</Link>
+            <Link href="/admin/featured" className="text-blue-600 hover:underline">Featured</Link>
             <Link href="/admin/archived" className="text-blue-600 hover:underline">Archived</Link>
             <Link href="/admin/csv-upload" className="text-blue-600 hover:underline">CSV Upload</Link>
+            <Link href="/admin/settings" className="text-blue-600 hover:underline">Settings</Link>
             <Link href="/" className="text-blue-600 hover:underline">Back to directory</Link>
           </div>
         </div>
@@ -145,6 +170,55 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </div>
+
+            {/* Ad Performance */}
+            {adData && (
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Ad Performance (30 days)</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-sm text-gray-500">Ad Impressions</p>
+                    <p className="text-2xl font-bold text-gray-900">{adData.totalImpressions.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-sm text-gray-500">Ad Clicks</p>
+                    <p className="text-2xl font-bold text-gray-900">{adData.totalClicks.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <p className="text-sm text-gray-500">Overall CTR</p>
+                    <p className="text-2xl font-bold text-gray-900">{adData.totalCtr.toFixed(1)}%</p>
+                  </div>
+                </div>
+                {adData.ads.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No ad data yet.</p>
+                ) : (
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Ad</th>
+                          <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Placement</th>
+                          <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Impressions</th>
+                          <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Clicks</th>
+                          <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">CTR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adData.ads.map((a) => (
+                          <tr key={a.id} className="border-b border-gray-100 last:border-0">
+                            <td className="px-4 py-3 text-sm text-gray-900">{a.name}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{a.placement}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600 text-right">{a.impressions.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600 text-right">{a.clicks.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600 text-right">{a.ctr.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
       </div>

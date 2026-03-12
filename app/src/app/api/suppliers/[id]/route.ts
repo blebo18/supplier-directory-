@@ -42,6 +42,7 @@ export async function GET(
     squareFeet: supplier.squareFeet,
     description: supplier.description,
     archived: supplier.archived,
+    featured: supplier.featured,
     categories: supplier.categories.map((sc) => sc.category.name).sort(),
     images: supplier.images.map((img) => ({
       id: img.id,
@@ -57,6 +58,7 @@ export async function GET(
     documents: supplier.documents.map((d) => ({
       id: d.id,
       filename: d.filename,
+      title: d.title,
       fileSize: d.fileSize,
     })),
   });
@@ -76,6 +78,7 @@ const updateSchema = z.object({
   description: z.string().nullable().optional(),
   categories: z.array(z.string().min(1).max(100)).optional(),
   archived: z.boolean().optional(),
+  featured: z.boolean().optional(),
 });
 
 export async function PUT(

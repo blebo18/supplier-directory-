@@ -87,8 +87,11 @@ export default function ArchivedPage() {
           <h1 className="text-2xl font-bold text-gray-900">Archived Suppliers</h1>
           <div className="flex gap-4 text-sm">
             <Link href="/admin" className="text-blue-600 hover:underline">Users</Link>
+            <Link href="/admin/ads" className="text-blue-600 hover:underline">Ads</Link>
+            <Link href="/admin/featured" className="text-blue-600 hover:underline">Featured</Link>
             <Link href="/admin/analytics" className="text-blue-600 hover:underline">Analytics</Link>
             <Link href="/admin/csv-upload" className="text-blue-600 hover:underline">CSV Upload</Link>
+            <Link href="/admin/settings" className="text-blue-600 hover:underline">Settings</Link>
             <Link href="/" className="text-blue-600 hover:underline">Back to directory</Link>
           </div>
         </div>

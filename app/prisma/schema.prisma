@@ -46,6 +46,7 @@ model Supplier {
   videos          SupplierVideo[]
   documents       SupplierDocument[]
   archived        Boolean            @default(false)
+  featured        Boolean            @default(false)
   contactMessages ContactMessage[]
   views           SupplierView[]
   clicks          WebLinkClick[]
@@ -98,6 +99,7 @@ model SupplierDocument {
   id          Int      @id @default(autoincrement())
   supplierId  Int
   filename    String
+  title       String?
   storagePath String
   fileSize    Int
   createdAt   DateTime @default(now())
@@ -125,6 +127,56 @@ model WebLinkClick {
 
   @@index([supplierId])
   @@index([clickedAt])
+}
+
+enum AdPlacement {
+  GRID
+  SIDEBAR
+  LEADERBOARD
+}
+
+model Ad {
+  id             Int           @id @default(autoincrement())
+  name           String
+  imageUrl       String
+  destinationUrl String
+  placement      AdPlacement
+  weight         Int           @default(1)
+  active         Boolean       @default(true)
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  impressions    AdImpression[]
+  clicks         AdClick[]
+
+  @@index([placement, active, startDate, endDate])
+}
+
+model AdImpression {
+  id       Int      @id @default(autoincrement())
+  adId     Int
+  viewedAt DateTime @default(now())
+  ad       Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@index([adId])
+  @@index([viewedAt])
+}
+
+model AdClick {
+  id        Int      @id @default(autoincrement())
+  adId      Int
+  clickedAt DateTime @default(now())
+  ad        Ad       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@index([adId])
+  @@index([clickedAt])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model ContactMessage {
